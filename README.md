@@ -17,8 +17,12 @@ Abre una terminal en la raíz del proyecto y ejecuta los siguientes comandos:
 
 ### 1. Compilar el proyecto
 
+```bash
 .\mvnw clean package "-DskipTests" "-Denforcer.skip=true"
+```
 
 ### 2. Desplegar y ejecutar la aplicación
 
+```bash
 .\mvnw cargo:run "-Denforcer.skip=true"
+```
