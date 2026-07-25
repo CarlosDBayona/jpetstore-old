@@ -14,8 +14,9 @@
 #    limitations under the License.
 #
 
-FROM openjdk:25
+FROM eclipse-temurin:25-jdk
 COPY . /usr/src/myapp
 WORKDIR /usr/src/myapp
+RUN sed -i 's/\r$//' mvnw && chmod +x mvnw
 RUN ./mvnw clean package
 CMD ./mvnw cargo:run -P tomcat90

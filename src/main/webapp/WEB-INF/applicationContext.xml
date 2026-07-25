@@ -29,11 +29,15 @@
      http://mybatis.org/schema/mybatis-spring http://mybatis.org/schema/mybatis-spring.xsd">
 
     <!-- 1. Configuración de conexión a PostgreSQL -->
+    <!-- DB_URL/DB_USERNAME/DB_PASSWORD can be overridden via environment variables (e.g. from Docker Compose)
+         so the same WAR connects to localhost for local dev and to the shared "postgres" service in Docker. -->
+    <context:property-placeholder ignore-unresolvable="true" system-properties-mode="ENVIRONMENT" />
+
     <bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <property name="driverClassName" value="org.postgresql.Driver" />
-        <property name="url" value="jdbc:postgresql://localhost:5432/jpetstore" />
-        <property name="username" value="jpetstore" />
-        <property name="password" value="jpetstore_pass" />
+        <property name="url" value="${DB_URL:jdbc:postgresql://localhost:5432/jpetstore}" />
+        <property name="username" value="${DB_USERNAME:jpetstore}" />
+        <property name="password" value="${DB_PASSWORD:jpetstore_pass}" />
     </bean>
 
     <!-- 2. Inicialización automática del esquema y datos en PostgreSQL -->
