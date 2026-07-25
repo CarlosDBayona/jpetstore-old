@@ -14,6 +14,20 @@
 --    limitations under the License.
 --
 
+DROP TABLE IF EXISTS lineitem CASCADE;
+DROP TABLE IF EXISTS orderstatus CASCADE;
+DROP TABLE IF EXISTS orders CASCADE;
+DROP TABLE IF EXISTS inventory CASCADE;
+DROP TABLE IF EXISTS item CASCADE;
+DROP TABLE IF EXISTS product CASCADE;
+DROP TABLE IF EXISTS category CASCADE;
+DROP TABLE IF EXISTS bannerdata CASCADE;
+DROP TABLE IF EXISTS profile CASCADE;
+DROP TABLE IF EXISTS account CASCADE;
+DROP TABLE IF EXISTS signon CASCADE;
+DROP TABLE IF EXISTS supplier CASCADE;
+DROP TABLE IF EXISTS sequence CASCADE;
+
 create table supplier (
     suppid int not null,
     name varchar(80) null,
