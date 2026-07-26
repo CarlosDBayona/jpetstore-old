@@ -30,9 +30,10 @@
 
 <div id="Catalog">
 
-<h2>${actionBean.product.name}</h2>
+<h2 id="product-title">${actionBean.product.name}</h2>
 
 <table>
+	<thead>
 	<tr>
 		<th>Item ID</th>
 		<th>Product ID</th>
@@ -40,6 +41,10 @@
 		<th>List Price</th>
 		<th>&nbsp;</th>
 	</tr>
+	</thead>
+	<tbody id="item-list-body">
+	<!-- Rows below are the server-rendered fallback; replaced by fetch() once the
+	     jpetstore-partial REST API (Issue #4) responds. -->
 	<c:forEach var="item" items="${actionBean.itemList}">
 		<tr>
 			<td><stripes:link
@@ -65,8 +70,54 @@
 		<td>
 		</td>
 	</tr>
+	</tbody>
 </table>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+	var apiBaseUrl = 'http://' + window.location.hostname + ':8080/api/catalog';
+	var params = new URLSearchParams(window.location.search);
+	var productId = params.get('productId') || '${actionBean.product.productId}';
+	var productName = document.getElementById('product-title').textContent;
+	var tbody = document.getElementById('item-list-body');
+
+	function escapeHtml(value) {
+		var div = document.createElement('div');
+		div.textContent = value == null ? '' : String(value);
+		return div.innerHTML;
+	}
+
+	function formatPrice(value) {
+		return '$' + Number(value).toFixed(2);
+	}
+
+	function describeItem(item) {
+		var attrs = [item.attribute1, item.attribute2, item.attribute3, item.attribute4, item.attribute5]
+			.filter(function (attr) { return attr; });
+		attrs.push(productName);
+		return attrs.join(' ');
+	}
+
+	try {
+		var response = await fetch(apiBaseUrl + '/products/' + encodeURIComponent(productId) + '/items');
+		var items = await response.json();
+
+		tbody.innerHTML = items.map(function (item) {
+			var safeItemId = escapeHtml(item.itemId);
+			return '<tr>'
+				+ '<td><a href="Catalog.action?viewItem=&itemId=' + encodeURIComponent(item.itemId) + '">' + safeItemId + '</a></td>'
+				+ '<td>' + escapeHtml(item.productId) + '</td>'
+				+ '<td>' + escapeHtml(describeItem(item)) + '</td>'
+				+ '<td>' + escapeHtml(formatPrice(item.listPrice)) + '</td>'
+				+ '<td><a class="Button" href="Cart.action?addItemToCart=&workingItemId=' + encodeURIComponent(item.itemId) + '">Add to Cart</a></td>'
+				+ '</tr>';
+		}).join('');
+	} catch (error) {
+		console.error('Failed to load item data from jpetstore-partial API, keeping server-rendered rows:', error);
+	}
+});
+</script>
 
 <%@ include file="../common/IncludeBottom.jsp"%>
