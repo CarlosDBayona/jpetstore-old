@@ -44,7 +44,7 @@
 	</thead>
 	<tbody id="item-list-body">
 	<!-- Rows below are the server-rendered fallback; replaced by fetch() once the
-	     jpetstore-partial REST API (Issue #4) responds. -->
+	     jpetstore-partial REST API (Issues #3 and #4) responds. -->
 	<c:forEach var="item" items="${actionBean.itemList}">
 		<tr>
 			<td><stripes:link
@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 	var apiBaseUrl = 'http://' + window.location.hostname + ':8080/api/catalog';
 	var params = new URLSearchParams(window.location.search);
 	var productId = params.get('productId') || '${actionBean.product.productId}';
-	var productName = document.getElementById('product-title').textContent;
+	var titleEl = document.getElementById('product-title');
+	var productName = titleEl.textContent;
 	var tbody = document.getElementById('item-list-body');
 
 	function escapeHtml(value) {
@@ -101,8 +102,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 	}
 
 	try {
-		var response = await fetch(apiBaseUrl + '/products/' + encodeURIComponent(productId) + '/items');
-		var items = await response.json();
+		var responses = await Promise.all([
+			fetch(apiBaseUrl + '/products/' + encodeURIComponent(productId)),
+			fetch(apiBaseUrl + '/products/' + encodeURIComponent(productId) + '/items')
+		]);
+
+		if (responses[0].ok) {
+			var product = await responses[0].json();
+			productName = product.name;
+			titleEl.textContent = productName;
+		}
+
+		var items = await responses[1].json();
 
 		tbody.innerHTML = items.map(function (item) {
 			var safeItemId = escapeHtml(item.itemId);
@@ -115,7 +126,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 				+ '</tr>';
 		}).join('');
 	} catch (error) {
-		console.error('Failed to load item data from jpetstore-partial API, keeping server-rendered rows:', error);
+		console.error('Failed to load product data from jpetstore-partial API, keeping server-rendered rows:', error);
 	}
 });
 </script>
