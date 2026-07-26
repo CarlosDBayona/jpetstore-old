@@ -30,9 +30,10 @@
 
 <div id="Catalog">
 
-<h2>${actionBean.product.name}</h2>
+<h2 id="product-title">${actionBean.product.name}</h2>
 
 <table>
+	<thead>
 	<tr>
 		<th>Item ID</th>
 		<th>Product ID</th>
@@ -40,33 +41,91 @@
 		<th>List Price</th>
 		<th>&nbsp;</th>
 	</tr>
-	<c:forEach var="item" items="${actionBean.itemList}">
-		<tr>
-			<td><stripes:link
-				beanclass="org.mybatis.jpetstore.web.actions.CatalogActionBean"
-				event="viewItem">
-				<stripes:param name="itemId" value="${item.itemId}" />
-				${item.itemId}
-			</stripes:link></td>
-			<td>${item.product.productId}</td>
-			<td>${item.attribute1} ${item.attribute2} ${item.attribute3}
-			${item.attribute4} ${item.attribute5} ${actionBean.product.name}</td>
-			<td><fmt:formatNumber value="${item.listPrice}"
-				pattern="$#,##0.00" /></td>
-			<td><stripes:link class="Button"
-				beanclass="org.mybatis.jpetstore.web.actions.CartActionBean"
-				event="addItemToCart">
-				<stripes:param name="workingItemId" value="${item.itemId}" />
-        	Add to Cart
-        </stripes:link></td>
-		</tr>
-	</c:forEach>
-	<tr>
-		<td>
-		</td>
-	</tr>
+	</thead>
+	<tbody id="item-list-body">
+		<!-- Rows below are the server-rendered fallback; replaced by fetch() once the
+		     jpetstore-partial REST API responds. -->
+		<c:forEach var="item" items="${actionBean.itemList}">
+			<tr>
+				<td><stripes:link
+					beanclass="org.mybatis.jpetstore.web.actions.CatalogActionBean"
+					event="viewItem">
+					<stripes:param name="itemId" value="${item.itemId}" />
+					${item.itemId}
+				</stripes:link></td>
+				<td>${item.product.productId}</td>
+				<td>${item.attribute1} ${item.attribute2} ${item.attribute3}
+				${item.attribute4} ${item.attribute5} ${actionBean.product.name}</td>
+				<td><fmt:formatNumber value="${item.listPrice}"
+					pattern="$#,##0.00" /></td>
+				<td><stripes:link class="Button"
+					beanclass="org.mybatis.jpetstore.web.actions.CartActionBean"
+					event="addItemToCart">
+					<stripes:param name="workingItemId" value="${item.itemId}" />
+	        	Add to Cart
+	        </stripes:link></td>
+			</tr>
+		</c:forEach>
+	</tbody>
 </table>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+	var apiBaseUrl = 'http://' + window.location.hostname + ':8080/api/catalog';
+	var params = new URLSearchParams(window.location.search);
+	var productId = params.get('productId') || '${actionBean.product.productId}';
+	var titleEl = document.getElementById('product-title');
+	var backLinkEl = document.querySelector('#BackLink a');
+	var tbody = document.getElementById('item-list-body');
+
+	function escapeHtml(value) {
+		var div = document.createElement('div');
+		div.textContent = value == null ? '' : String(value);
+		return div.innerHTML;
+	}
+
+	function formatPrice(value) {
+		return '$' + Number(value).toLocaleString('en-US', {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2
+		});
+	}
+
+	try {
+		var responses = await Promise.all([
+			fetch(apiBaseUrl + '/products/' + encodeURIComponent(productId)),
+			fetch(apiBaseUrl + '/products/' + encodeURIComponent(productId) + '/items')
+		]);
+		if (!responses[0].ok || !responses[1].ok) {
+			throw new Error('API responded with HTTP ' + responses[0].status + '/' + responses[1].status);
+		}
+		var product = await responses[0].json();
+		var items = await responses[1].json();
+
+		titleEl.textContent = product.name;
+		if (backLinkEl && product.categoryId) {
+			backLinkEl.href = 'Catalog.action?viewCategory=&categoryId=' + encodeURIComponent(product.categoryId);
+			backLinkEl.textContent = 'Return to ' + product.categoryId;
+		}
+
+		tbody.innerHTML = items.map(function (item) {
+			var attributes = [item.attribute1, item.attribute2, item.attribute3, item.attribute4, item.attribute5]
+				.filter(function (a) { return a; }).join(' ');
+			var itemProductId = item.product ? item.product.productId : product.productId;
+			return '<tr>'
+				+ '<td><a href="Catalog.action?viewItem=&itemId=' + encodeURIComponent(item.itemId) + '">' + escapeHtml(item.itemId) + '</a></td>'
+				+ '<td>' + escapeHtml(itemProductId) + '</td>'
+				+ '<td>' + escapeHtml((attributes ? attributes + ' ' : '') + product.name) + '</td>'
+				+ '<td>' + escapeHtml(formatPrice(item.listPrice)) + '</td>'
+				+ '<td><a class="Button" href="Cart.action?addItemToCart=&workingItemId=' + encodeURIComponent(item.itemId) + '">Add to Cart</a></td>'
+				+ '</tr>';
+		}).join('');
+	} catch (error) {
+		console.error('Failed to load product data from jpetstore-partial API, keeping server-rendered rows:', error);
+	}
+});
+</script>
 
 <%@ include file="../common/IncludeBottom.jsp"%>
